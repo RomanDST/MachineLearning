@@ -1,0 +1,93 @@
+#Practical Machine Learning: Course project
+##Initialization
+```{r}
+library(knitr)
+opts_chunk$set(cache=TRUE)
+set.seed(1)
+```
+
+##The goal of the project
+The goal of the project is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. The goal is to predict the manner in which people do the exercise.
+
+##Reading the data
+First, the  .csv  file that contain the training data should be read into R. Unavailable values set as  NA .
+```{r}
+rawData <- read.csv("./data/pml-training.csv", na.strings = c("NA", ""))
+```
+
+##Reducing the dataset
+In the next step, I check the proportion of missing values ( NA s) in the columns.
+```{r}
+propNAs <- colMeans(is.na(rawData))
+table(propNAs)
+```
+
+There are some columns in which almost all values are missing. If a column contains a large number of  NA s, it will not be of great use for training the model. Hence, these columns will be removed. Only the columns without any  NA s will be kept.
+```{r}
+idx <- !propNAs
+sum(idx)
+rawDataReduced <- rawData[idx]
+ncol(rawDataReduced)
+```
+
+There are further unnecessary columns that can be removed. The column  X  contains the row numbers. The column  user_name  contains the name of the user. Of course, these variables cannot predictors for the type of exercise.
+
+Furthermore, the three columns containing time stamps ( raw_timestamp_part_1 ,  raw_timestamp_part_2 , and  cvtd_timestamp ) will not be used.
+
+The factors  new_window  and  num_window  are not related to sensor data. They will be removed too.
+
+```{r}
+idx <- grep("^X$|user_name|timestamp|window", names(rawDataReduced))
+length(idx)
+rawDataReduced2 <- rawDataReduced[-idx]
+```
+
+##Preparing data for training
+Now, the dataset contains one outcome column and some feature columns. The function  createDataPartition  of the  caret  package is used to split the data into a training and a cross-validation data set. Here, 70% of the data goes into the training set.
+```{r}
+library(caret)
+inTrain <- createDataPartition(y = rawDataReduced2$classe, p = 0.7, list = FALSE)
+```
+
+Index inTrain used to split the data.
+```{r}
+training <- rawDataReduced2[inTrain, ]
+nrow(training)
+crossval <- rawDataReduced2[-inTrain, ]
+nrow(crossval)
+```
+
+##Training the model
+I used the random-forest technique to generate a predictive model. In sum, 10 models were trained. I played around with the parameters passed to  trControl  and specified different models with bootstrapping ( method = "boot" ) and cross-validation ( method = "cv" ).
+
+It turned out that all models showed a good performance (because their accuracy was above 99%) though their training times were quite different.
+
+Due to the similar performance, I will present the model with the shortest training time.
+```{r}
+library(randomForest)
+trControl <- trainControl(method = "cv", number = 2)
+#modFit <- train(classe ~ ., data = training, method = "rf", prox = TRUE, trControl = trControl)
+```
+
+##Evaluating the model (out-of-sample error)
+First, the final model was used to predict the outcome in the cross-validation dataset.
+```{r}
+#pred <- predict(modFit, newdata = crossval)
+```
+
+Second, the function  confusionMatrix  is used to calculate the accuracy of the prediction.
+```{r}
+#coMa <- confusionMatrix(pred, reference = crossval$classe)
+#acc <- coMa$overall["Accuracy"]
+#acc
+```
+
+
+
+
+
+
+
+
+
+
